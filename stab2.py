@@ -36,6 +36,9 @@ retImg=pro.GaussianFilter(3,20)
 cv2.imshow("img",retImg)
 cv2.waitKey(0)
 
+retImg=imgProLib.imgProCls(imgProLib.imgProCls(img).swapRB()).swapRB()
+cv2.imshow("img",retImg)
+cv2.waitKey(0)
 
 print("OutPutFileName=",end="")
 outputStr=input()

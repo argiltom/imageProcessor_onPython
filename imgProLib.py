@@ -352,9 +352,21 @@ class imgProCls:
 
         return self.LinearFilter(gaussF)
         
-
+    #privateMethod
+    def __swapRGB(self,index1:int,index2:int):
+        retImg=copy.deepcopy(self.img)
+        for y in range(self.img.shape[0]):
+            for x in range(self.img.shape[1]):
+                retImg[y,x,index1]=self.img[y,x,index2]
+                retImg[y,x,index2]=self.img[y,x,index1]
+        return  retImg
         
-        
+    def swapRG(self):
+        return self.__swapRGB(1,2)
+    def swapRB(self):
+        return self.__swapRGB(0,2)
+    def swapGB(self):
+        return self.__swapRGB(0,1)
         
         
 
