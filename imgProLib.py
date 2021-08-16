@@ -1,6 +1,8 @@
 #全てのことが自分にとって可能であるという前提に立つ！ そうすれば、「どうすればできるか？」を考え始めることが出来るようになる
 #考え始めさえすれば、全ての課題は解決可能になる！　　
 #諦めなければ希望はある！、　炎は此処に！
+#img.ndim == 3 →　RGB
+#img.ndim == 2 →　GRAY
 
 import numpy as np
 import sys
@@ -8,15 +10,18 @@ import cv2
 import copy
 import math
 
+from numpy.core.fromnumeric import shape
+from numpy.core.numeric import zeros_like
+
 
 class imgProCls:
     def __init__(self,img):
         self.queue=[]#キュー
         self.img=img
         pass
-    def EnQuere(self,y,x):
+    def __EnQuere(self,y,x):
         self.queue.append((y,x))
-    def DeQuere(self):
+    def __DeQuere(self):
         if len(self.queue)==0:
             return -1,-1
         (y,x)=self.queue[0]
@@ -214,20 +219,22 @@ class imgProCls:
 
 
     #シード画素を領域成長させて、該当領域の座標リストを返す
-    #RGB画像に対応した領域成長
+    #RGB画像,GRAY画像両方に対応した領域成長
     #allowRangeは,rgbそれぞれのシード画素からの許容するプラスマイナスの差異を定義する．
-    #格納されているimgが白黒画像の時は、IndexError: invalid index to scalar variable.を起こしてしまうので注意
+    #格納されているimgが白黒画像の時は、IndexError: invalid index to scalar variable.を起こしてしまうので注意→修正完了白黒画像でもちゃんと動くようになった．
     def GrowthPoint(self,seed_y,seed_x,allowRange):
+        if self.img.ndim == 2:#グレースケール画像をRGB画像に変換　これでエラーを未然に防ぐ
+            self.img = cv2.cvtColor(self.img, cv2.COLOR_GRAY2RGB)
         #スタート地点の画素を取得
         startPoint=self.img[seed_y,seed_x]
         bin_img = np.zeros((self.img.shape[0],self.img.shape[1]))
         bin_img[0:bin_img.shape[0],0:bin_img.shape[1]] = 1 #全部1で初期化 1は未踏破の証
         bin_img[seed_y,seed_x]=255 #seed画素が前景であることは確定
-        self.EnQuere(seed_y,seed_x)
+        self.__EnQuere(seed_y,seed_x)
         #返す座標リスト
         retList=[]
         while len(self.queue)!=0:
-            y,x=self.DeQuere()
+            y,x=self.__DeQuere()
             #print(str(y)+","+str(x)+" thresh="+str(allowRange))
             #隣接画素を取得
             for i in range(-1,2):
@@ -240,7 +247,7 @@ class imgProCls:
                             isEnquere=False
                     if isEnquere :
                         bin_img[y+i,x]=255
-                        self.EnQuere(y+i,x)
+                        self.__EnQuere(y+i,x)
                         retList.append((y+i,x))#同じ領域として追加
                     else:
                         bin_img[y+i,x]=0
@@ -255,7 +262,7 @@ class imgProCls:
                             
                     if isEnquere :
                         bin_img[y,x+i]=255
-                        self.EnQuere(y,x+i)
+                        self.__EnQuere(y,x+i)
                         retList.append((y,x+i))#同じ領域として追加
                     else:
                         bin_img[y,x+i]=0
@@ -307,7 +314,7 @@ class imgProCls:
         #img=cv2.Canny(self.img,threshold2=170,threshold1=90,L2gradient=True)
         img=cv2.Canny(self.img,threshold1,threshold2,L2gradient=True)
         return img
-    #線形フィルタの演算装置 #RGBの画像を前提としている
+    #線形フィルタの演算装置 グレースケール,RGBどちらでも可
     def LinearFilter(self,filter:np.ndarray):
         #フィルタの例
         #filter=np.array([[0,1,0],[1,-4,1],[0,1,0]],dtype=np.uint8)#ndarrayインスタンスを作成
@@ -330,13 +337,28 @@ class imgProCls:
                     for fx in range(fw):
                         temp+=tempImg[y-math.floor(fh/2)+fy,x-math.floor(fw/2)+fx]*filter[fy,fx]#これで三画素文纏めて計算できる
                         #print(temp)
+                #値の調整(255>x)→x=255 (x<0)→x=0
+                #RGB画像時
+                if tempImg.ndim == 3:
+                    for k in range(3):
+                        if temp[k]>255:
+                            temp[k]=0
+                        elif temp[k]<0:
+                            temp[k]=0
+                #グレースケール画像時
+                elif tempImg.ndim == 2:
+                    if temp>255:
+                            temp=0
+                    elif temp<0:
+                            temp=0
+                
                 retImg[y,x]=temp
         return retImg
     #ガウシアンフィルタを生成し、LinearFilterでフィルタを適用し、画像を出力
     def GaussianFilter(self,length,ρ):
         def CalcGaussian(y,x,ρ):
             return 1/(2*math.pi*(ρ**2))*math.exp(-(x**2+y**2)/(2*(ρ**2)))
-            
+        #ガウシアンフィルタの生成
         gaussF=np.zeros((length,length))
         for y in range(length):
             for x in range(length):
@@ -353,7 +375,7 @@ class imgProCls:
         return self.LinearFilter(gaussF)
         
     #privateMethod
-    def __swapRGB(self,index1:int,index2:int):
+    def __SwapRGB(self,index1:int,index2:int):
         retImg=copy.deepcopy(self.img)
         for y in range(self.img.shape[0]):
             for x in range(self.img.shape[1]):
@@ -361,14 +383,91 @@ class imgProCls:
                 retImg[y,x,index2]=self.img[y,x,index1]
         return  retImg
         
-    def swapRG(self):
-        return self.__swapRGB(1,2)
-    def swapRB(self):
-        return self.__swapRGB(0,2)
-    def swapGB(self):
-        return self.__swapRGB(0,1)
+    def SwapRG(self):
+        return self.__SwapRGB(1,2)
+    def SwapRB(self):
+        return self.__SwapRGB(0,2)
+    def SwapGB(self):
+        return self.__SwapRGB(0,1)
+    #クラスが保有している画像から,引数の画像を引いた画像を出力する isAbsがTrueなら差の絶対値を取る
+    def DiffImg(self,img:np.ndarray,isAbs:bool):
+        if img.ndim == 2:       #グレースケール画像をRGB画像に変換　これでエラーを未然に防ぐ
+            img= cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        if self.img.ndim == 2:      #グレースケール画像をRGB画像に変換　これでエラーを未然に防ぐ
+            self.img = cv2.cvtColor(self.img, cv2.COLOR_GRAY2RGB)
+        #出力画像の初期化
+        retImg=np.zeros_like(self.img,np.uint8)
+        for y in range(self.img.shape[0]):
+            for x in range(self.img.shape[1]):
+                temp=self.img[y,x]-img[y,x]
+                for k in range(3):
+                    if temp[k]<0:
+                        if isAbs:
+                            temp[k]=-temp[k]
+                        else:
+                            temp[k]=0
+                retImg[y,x]=temp
+        return retImg
+    #CannyFilterで検出した箇所にガウシアンフィルタを掛ける
+    #輪郭部を効率的に平滑化することを目的としている．
+    def CannyGaussian(self,threshold1,threshold2,guaussianLen,ρ,round):
+        def CalcGaussian(y,x,ρ):
+            return 1/(2*math.pi*(ρ**2))*math.exp(-(x**2+y**2)/(2*(ρ**2)))
         
+        cannyImg=cv2.Canny(self.img,threshold1,threshold2,L2gradient=True)
+        cannylist=[]
+        for y in range(cannyImg.shape[0]):
+            for x in range(cannyImg.shape[1]):
+                if(cannyImg[y,x]==255):
+                    cannylist.append((y,x))
         
+        #roundで指定したcanny検出周囲の画素にもガウシアンフィルタを掛ける
+        #まず,元のcannylistのコピーを取る
+        copyCannyList=copy.deepcopy(cannylist)
+        #cannylistを初期化
+        cannylist=[]
+        #円形で設定 元のリストの周囲のも追加する
+        for y,x in copyCannyList:
+            for ry in range(-round,round+1):
+                for rx in range(-round,round+1):
+                    if(round**2>=ry**2+rx**2):
+
+                        if not (y+ry,x+rx) in cannylist: #重ねて追加しないようにする
+                            cannylist.append((y+ry,x+rx))
+        #テスト
+        #print(cannylist)
+        #ガウシアンフィルタの定義
+        gaussF=np.zeros((guaussianLen,guaussianLen))
+        for y in range(guaussianLen):
+            for x in range(guaussianLen):
+                gaussF[y,x]=CalcGaussian(y-math.floor(guaussianLen/2),x-math.floor(guaussianLen/2),ρ)
+        gaussF*=1/sum(sum(gaussF))#正規化#ガウシアンフィルタの総和が1になるように調整
+        gfh,gfw=guaussianLen,guaussianLen
+        
+        #画像の初期化
+        tempImg=np.float64(self.img)
+        
+        retImg=copy.deepcopy(self.img)
+        #retImg=np.zeros_like(self.img) #テスト用 これをONにすると、ガウシアンした箇所だけ表示できるようになる
+        #画像演算
+        for y,x in cannylist:
+            #print(y,x)
+
+            temp=0
+            #配列踏み越え防止
+            if y<(0+math.floor(gfh/2)) or y>(tempImg.shape[0]-math.ceil(gfh/2)):#floorだとたまに踏み越えが起こる
+                #guprint(y,x)
+                pass
+            elif x<(0+math.floor(gfw/2)) or x>(tempImg.shape[1]-math.ceil(gfw/2)):
+                #print(y,x)
+                pass
+            else:
+                for fy in range(gfh):
+                    for fx in range(gfw):
+                        temp+=tempImg[y-math.floor(gfh/2)+fy,x-math.floor(gfw/2)+fx]*gaussF[fy,fx]
+                retImg[y,x]=temp
+        
+        return retImg
 
 #---------------------------------------
 #メイン処理
