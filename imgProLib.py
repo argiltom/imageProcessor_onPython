@@ -9,10 +9,13 @@ import sys
 import cv2
 import copy
 import math
-
+import random
 from numpy.core.fromnumeric import shape
 from numpy.core.numeric import zeros_like
 
+#https://atsuoishimoto.hatenablog.com/entry/2018/01/06/195649 pythonの処理が遅い原因について
+#for文自体が遅いわけではない、
+#Pythonの演算が遅い最大の要因は、Pythonが静的な型宣言を行わない言語で、型推論もJITもなく、常に動的にオブジェクトの演算を行う、という点にある場合がほとんどだ。(引用)
 
 class imgProCls:
     def __init__(self,img):
@@ -321,6 +324,9 @@ class imgProCls:
         #ガウシアンフィルタ
         #filter=np.array([[1,2,1],[2,4,2],[1,2,1]],dtype=np.uint8)#ndarrayインスタンスを作成
         #filter=filter/16
+        #グレースケール画像をカラーに変更
+        if self.img.ndim == 2:
+            self.img = cv2.cvtColor(self.img,cv2.COLOR_GRAY2RGB)
         #画像の初期化はこのようにやる--------------------------------------
         tempImg=np.float64(self.img)
         retImg=np.zeros_like(self.img,np.uint8)
@@ -328,31 +334,23 @@ class imgProCls:
         fh=filter.shape[0]
         fw=filter.shape[1]
         H,W=self.img.shape[0],self.img.shape[1]
-        
-        
-        for y in range(0+math.floor(fh/2),H-math.floor(fh/2)):
-            for x in range(0+math.floor(fw/2),W-math.floor(fw/2)):
-                temp=0
-                for fy in range(fh):
-                    for fx in range(fw):
-                        temp+=tempImg[y-math.floor(fh/2)+fy,x-math.floor(fw/2)+fx]*filter[fy,fx]#これで三画素文纏めて計算できる
+        fh_2f=math.floor(fh/2)
+        fw_2f=math.floor(fw/2)
+        fh_2c=math.ceil(fh/2)
+        fw_2c=math.ceil(fw/2)
+        print(filter[0:fh,0:fw])
+        for y in range(0+fh_2f,H-fh_2f):
+            for x in range(0+fw_2f,W-fw_2f):
+                for k in range(3):
+                    temp=0
+                    temp+=sum(sum(tempImg[y-fh_2f:y+fh_2c,x-fw_2f:x+fw_2c,k]*filter[0:fh,0:fw]))
                         #print(temp)
                 #値の調整(255>x)→x=255 (x<0)→x=0
-                #RGB画像時
-                if tempImg.ndim == 3:
-                    for k in range(3):
-                        if temp[k]>255:
-                            temp[k]=0
-                        elif temp[k]<0:
-                            temp[k]=0
-                #グレースケール画像時
-                elif tempImg.ndim == 2:
                     if temp>255:
-                            temp=0
+                        temp=255
                     elif temp<0:
-                            temp=0
-                
-                retImg[y,x]=temp
+                        temp=0
+                    retImg[y,x,k]=temp
         return retImg
     #ガウシアンフィルタを生成し、LinearFilterでフィルタを適用し、画像を出力
     def GaussianFilter(self,length,ρ):
@@ -409,7 +407,7 @@ class imgProCls:
                 retImg[y,x]=temp
         return retImg
     #CannyFilterで検出した箇所にガウシアンフィルタを掛ける
-    #輪郭部を効率的に平滑化することを目的としている．
+    #輪郭部を効率的に平滑化することを目的としている． #でもガウシアンフィルタの処理より遅い
     def CannyGaussian(self,threshold1,threshold2,guaussianLen,ρ,round):
         def CalcGaussian(y,x,ρ):
             return 1/(2*math.pi*(ρ**2))*math.exp(-(x**2+y**2)/(2*(ρ**2)))
@@ -424,8 +422,6 @@ class imgProCls:
         #roundで指定したcanny検出周囲の画素にもガウシアンフィルタを掛ける
         #まず,元のcannylistのコピーを取る
         copyCannyList=copy.deepcopy(cannylist)
-        #cannylistを初期化
-        cannylist=[]
         #円形で設定 元のリストの周囲のも追加する
         for y,x in copyCannyList:
             for ry in range(-round,round+1):
@@ -466,10 +462,106 @@ class imgProCls:
                     for fx in range(gfw):
                         temp+=tempImg[y-math.floor(gfh/2)+fy,x-math.floor(gfw/2)+fx]*gaussF[fy,fx]
                 retImg[y,x]=temp
-        
         return retImg
 
+
+    
+    #すごいフィルタ
+    def SUGOIFilter(self,flen:int):
+        filter=np.zeros((flen,flen))
+        for y in range(flen):
+            for x in range(flen):
+                filter[y,x]=random.randint(-100,100)
+        filter=filter/sum(sum(filter))#総和が1になる様に正規化
+        #print(filter)
+        return self.LinearFilter(filter)
+    #YABAIフィルタ (和名:荒らしフィルタ)
+    def YABAIFilter(self,n:int):
+        tempPro=imgProCls(self.img)
+        doneList=[]
+        for i in range(n):
+            num=random.randint(0,7)
+            
+            if num==0:
+                doneList.append("精鋭化")
+                #精鋭化フィルタ
+                filter=np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
+                tempPro.img=tempPro.LinearFilter(filter)
+            elif num==1:
+                doneList.append("Gaussian")
+                tempPro.img=tempPro.GaussianFilter(3,0.8)
+            elif num==2:
+                doneList.append("膨張")
+                tempPro.img=tempPro.MorphologyRGB(2,0)
+            elif num==3:
+                doneList.append("収縮")
+                tempPro.img=tempPro.MorphologyRGB(2,1)
+            elif num==4:
+                doneList.append("すごいフィルタ")
+                tempPro.img=tempPro.SUGOIFilter(3)
+            elif num==5:
+                doneList.append("R←→G")
+                tempPro.img=tempPro.SwapRG()
+            elif num==6:
+                doneList.append("R←→B")
+                tempPro.img=tempPro.SwapRB()
+            elif num==7:
+                doneList.append("G←→B")
+                tempPro.img=tempPro.SwapGB()
+        print(doneList)
+        return tempPro.img
+    
 #---------------------------------------
+    #かつての遺物 スライスによってより高速に改良されたため没
+    # def LinearFilterOld(self,filter:np.ndarray):
+    #     #フィルタの例
+    #     #filter=np.array([[0,1,0],[1,-4,1],[0,1,0]],dtype=np.uint8)#ndarrayインスタンスを作成
+    #     #ガウシアンフィルタ
+    #     #filter=np.array([[1,2,1],[2,4,2],[1,2,1]],dtype=np.uint8)#ndarrayインスタンスを作成
+    #     #filter=filter/16
+    #     #画像の初期化はこのようにやる--------------------------------------
+    #     tempImg=np.float64(self.img)
+    #     retImg=np.zeros_like(self.img,np.uint8)
+    #     #----------------------------------------------------------------
+    #     fh=filter.shape[0]
+    #     fw=filter.shape[1]
+    #     H,W=self.img.shape[0],self.img.shape[1]
+        
+        
+    #     for y in range(0+math.floor(fh/2),H-math.floor(fh/2)):
+    #         for x in range(0+math.floor(fw/2),W-math.floor(fw/2)):
+    #             temp=0
+    #             for fy in range(fh):
+    #                 for fx in range(fw):
+    #                     temp+=tempImg[y-math.floor(fh/2)+fy,x-math.floor(fw/2)+fx]*filter[fy,fx]#これで三画素文纏めて計算できる
+    #                     #print(temp)
+    #             #値の調整(255>x)→x=255 (x<0)→x=0
+    #             #RGB画像時
+    #             if tempImg.ndim == 3:
+    #                 for k in range(3):
+    #                     if temp[k]>255:
+    #                         temp[k]=255
+    #                     elif temp[k]<0:
+    #                         temp[k]=0
+    #             #グレースケール画像時
+    #             elif tempImg.ndim == 2:
+    #                 if temp>255:
+    #                         temp=0
+    #                 elif temp<0:
+    #                         temp=0
+                
+    #             retImg[y,x]=temp
+    #     return retImg
+
+
+
+
+
+
+
+
+
+
 #メイン処理
 #load image
 #fname_in  = sys.argv[1]

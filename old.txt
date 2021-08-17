@@ -1,0 +1,40 @@
+#線形フィルタの演算装置 グレースケール,RGBどちらでも可
+    def LinearFilter(self,filter:np.ndarray):
+        #フィルタの例
+        #filter=np.array([[0,1,0],[1,-4,1],[0,1,0]],dtype=np.uint8)#ndarrayインスタンスを作成
+        #ガウシアンフィルタ
+        #filter=np.array([[1,2,1],[2,4,2],[1,2,1]],dtype=np.uint8)#ndarrayインスタンスを作成
+        #filter=filter/16
+        #画像の初期化はこのようにやる--------------------------------------
+        tempImg=np.float64(self.img)
+        retImg=np.zeros_like(self.img,np.uint8)
+        #----------------------------------------------------------------
+        fh=filter.shape[0]
+        fw=filter.shape[1]
+        H,W=self.img.shape[0],self.img.shape[1]
+        
+        
+        for y in range(0+math.floor(fh/2),H-math.floor(fh/2)):
+            for x in range(0+math.floor(fw/2),W-math.floor(fw/2)):
+                temp=0
+                for fy in range(fh):
+                    for fx in range(fw):
+                        temp+=tempImg[y-math.floor(fh/2)+fy,x-math.floor(fw/2)+fx]*filter[fy,fx]#これで三画素文纏めて計算できる
+                        #print(temp)
+                #値の調整(255>x)→x=255 (x<0)→x=0
+                #RGB画像時
+                if tempImg.ndim == 3:
+                    for k in range(3):
+                        if temp[k]>255:
+                            temp[k]=0
+                        elif temp[k]<0:
+                            temp[k]=0
+                #グレースケール画像時
+                elif tempImg.ndim == 2:
+                    if temp>255:
+                            temp=0
+                    elif temp<0:
+                            temp=0
+                
+                retImg[y,x]=temp
+        return retImg
