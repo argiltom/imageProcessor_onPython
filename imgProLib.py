@@ -263,10 +263,13 @@ class imgProCls:
         self.__SelfImgConvert2RGBA()#これでエラーを防ぐ
         #スタート地点の画素を取得
         startPoint=self.img[seed_y,seed_x]
+        #領域演算画像
+        H,W=self.img.shape[0],self.img.shape[1]
         bin_img = np.zeros((self.img.shape[0],self.img.shape[1]))
         bin_img[0:bin_img.shape[0],0:bin_img.shape[1]] = 1 #全部1で初期化 1は未踏破の証
         bin_img[seed_y,seed_x]=255 #seed画素が前景であることは確定
         self.__EnQuere(seed_y,seed_x)
+        
         #返す座標リスト
         retList=[]
         while len(self.queue)!=0:
@@ -274,6 +277,8 @@ class imgProCls:
             #print(str(y)+","+str(x)+" thresh="+str(allowRange))
             #隣接画素を取得
             for i in range(-1,2):
+                if (y+i)<0 or (y+i)>=H: #踏み越え防止
+                    continue
                 if bin_img[y+i,x]==1:
                     isEnquere=True
                     for k in range(3):
@@ -288,6 +293,8 @@ class imgProCls:
                     else:
                         bin_img[y+i,x]=0
             for i in range(-1,2):
+                if (x+i)<0 or (x+i)>=W: #踏み越え防止
+                    continue
                 if bin_img[y,x+i]==1:
                     isEnquere=True
                     for k in range(3):
