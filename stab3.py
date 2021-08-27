@@ -76,8 +76,8 @@ t1_1=time.time()
 #retImg=pro.SwapGB()
 pro.img=pro.GrowthPointAlphaPainter(10,10,140,0)
 #pro.img=retImg
-#pro.img=pro.LinearFilter(filter)
-pro.img=pro.GaussianFilter(10,5)
+pro.img=pro.MorphologyRGB(3,0)
+#pro.img=pro.GaussianFilter(10,5)
 t1_2=time.time()
 print(str(t1_2-t1_1)+"秒")
 
@@ -100,5 +100,5 @@ cv2.waitKey(0)
 
 print("OutPutFileName=",end="")
 outputStr=input()
-cv2.imwrite(outputStr,retImg)
+cv2.imwrite(outputStr,pro.img)
 

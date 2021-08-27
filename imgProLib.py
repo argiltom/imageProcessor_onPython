@@ -31,18 +31,27 @@ class imgProCls:
         (y,x)=self.queue[0]
         del self.queue[0]
         return y,x
+    #imgに格納されている
 
-    #self.imgをRGBA方式に変更する 
+    #self.imgをRGBA方式に変更する  そしてRGBA方式を共通規格とする．
+    def __SelfImgConvert2RGBA(self):
+        if self.img.ndim == 2:
+            self.img = cv2.cvtColor(self.img,cv2.COLOR_GRAY2RGB)
+        #カラー画像を透過考慮画像RGBA画像に変更
+        if self.img.shape[2]==3: #alphaがないなら
+            self.img=cv2.cvtColor(self.img,cv2.COLOR_RGB2RGBA)
+
+    
     #画像を演算用画像に書き換える
 
     #画像を出力用画像に書き換える．
 
 
-    #透過画像がimgに格納されているなら、それをRGB方式にして出力する
+    #透過画像がimgに格納されているなら、それをRGB方式にして出力する JPG出力用に変換するときなどにどうぞ
     def AlphaImg2RGBImg(self,backColor:list):
         retImg=np.zeros_like(self.img)
-        if self.img.shape[2]==3: #alphaがないなら
-            self.img=cv2.cvtColor(self.img,cv2.COLOR_RGB2RGBA)
+        self.__SelfImgConvert2RGBA()
+
         for y in range(retImg.shape[0]):
             for x in range(retImg.shape[1]):
                 alpha=self.img[y,x,3]/255
@@ -251,8 +260,7 @@ class imgProCls:
     #allowRangeは,rgbそれぞれのシード画素からの許容するプラスマイナスの差異を定義する．
     #格納されているimgが白黒画像の時は、IndexError: invalid index to scalar variable.を起こしてしまうので注意→修正完了白黒画像でもちゃんと動くようになった．
     def GrowthPoint(self,seed_y,seed_x,allowRange):
-        if self.img.ndim == 2:#グレースケール画像をRGB画像に変換　これでエラーを未然に防ぐ
-            self.img = cv2.cvtColor(self.img, cv2.COLOR_GRAY2RGB)
+        self.__SelfImgConvert2RGBA()#これでエラーを防ぐ
         #スタート地点の画素を取得
         startPoint=self.img[seed_y,seed_x]
         bin_img = np.zeros((self.img.shape[0],self.img.shape[1]))
@@ -355,16 +363,11 @@ class imgProCls:
         return img
 
     #--------------------------------------------------------------------------------------フィルタ-----------------------------------------------------------
-    #線形フィルタの演算装置 グレースケール,RGBどちらでも可
+    #線形フィルタの演算装置 ついに透過画像にも対応した.
     def LinearFilter(self,filter:np.ndarray):
         #フィルタの例
         #filter=np.array([[0,1,0],[1,-4,1],[0,1,0]],dtype=np.uint8)#ndarrayインスタンスを作成
-        #ガウシアンフィルタ
-        #filter=np.array([[1,2,1],[2,4,2],[1,2,1]],dtype=np.uint8)#ndarrayインスタンスを作成
-        #filter=filter/16
-        #グレースケール画像をカラーに変更
-        if self.img.ndim == 2:
-            self.img = cv2.cvtColor(self.img,cv2.COLOR_GRAY2RGB)
+        self.__SelfImgConvert2RGBA()#画像をRGBAに変換する
         #画像の初期化はこのようにやる--------------------------------------
         tempImg=np.float64(self.img)
         retImg=np.zeros_like(self.img,np.uint8)
@@ -379,7 +382,7 @@ class imgProCls:
         print(filter[0:fh,0:fw])
         for y in range(0+fh_2f,H-fh_2f):
             for x in range(0+fw_2f,W-fw_2f):
-                for k in range(3):
+                for k in range(4):
                     temp=0
                     temp+=sum(sum(tempImg[y-fh_2f:y+fh_2c,x-fw_2f:x+fw_2c,k]*filter[0:fh,0:fw]))
                         #print(temp)
