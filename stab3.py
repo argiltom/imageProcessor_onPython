@@ -2,12 +2,11 @@ import sys
 import numpy as np
 import math
 import cv2
-import imgProLib
 import time
-
+from imgProLib import imgProCls
 fname_in  = sys.argv[1]
 img = cv2.imread(fname_in)
-pro=imgProLib.imgProCls(img)
+pro=imgProCls(img)
 # retImg=pro.MorphologyRGB(2,0)
 # cv2.imshow("img",retImg)
 # cv2.waitKey(0)
@@ -67,19 +66,22 @@ pro=imgProLib.imgProCls(img)
 
 # cv2.imshow("img",retImg1)
 # cv2.waitKey(0)
-#filter=np.array([[0,-1,0],[-1,4,-1],[0,-1,0]])#ndarrayインスタンスを作成
-filter=np.array([[0,1,0],[1,-4,1],[0,1,0]])#ラプラシアンフィルタ
+filter=np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])#ndarrayインスタンスを作成
+#filter=np.array([[0,1,0],[1,-4,1],[0,1,0]])#ラプラシアンフィルタ
 t1_1=time.time()
 #retImg=pro.LinearFilter(filter)
 #retImg=pro.YABAIFilter(10)
 #retImg=pro.SUGOIFilter(5)
 #retImg=pro.Canny(100,200)
 #retImg=pro.SwapGB()
-retImg=pro.GrowthPointAlphaPainter(0,0,40,0)
+pro.img=pro.GrowthPointAlphaPainter(10,10,140,0)
+#pro.img=retImg
+#pro.img=pro.LinearFilter(filter)
+pro.img=pro.GaussianFilter(10,5)
 t1_2=time.time()
 print(str(t1_2-t1_1)+"秒")
 
-cv2.imshow("img",retImg)
+cv2.imshow("img",pro.AlphaImg2RGBImg((255,255,255)))
 cv2.waitKey(0)
 
 

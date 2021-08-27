@@ -12,6 +12,7 @@ import math
 import random
 from numpy.core.fromnumeric import shape
 from numpy.core.numeric import zeros_like
+#from PIL import Image
 
 #https://atsuoishimoto.hatenablog.com/entry/2018/01/06/195649 pythonの処理が遅い原因について
 #for文自体が遅いわけではない、
@@ -30,6 +31,29 @@ class imgProCls:
         (y,x)=self.queue[0]
         del self.queue[0]
         return y,x
+
+    #self.imgをRGBA方式に変更する 
+    #画像を演算用画像に書き換える
+
+    #画像を出力用画像に書き換える．
+
+
+    #透過画像がimgに格納されているなら、それをRGB方式にして出力する
+    def AlphaImg2RGBImg(self,backColor:list):
+        retImg=np.zeros_like(self.img)
+        if self.img.shape[2]==3: #alphaがないなら
+            self.img=cv2.cvtColor(self.img,cv2.COLOR_RGB2RGBA)
+        for y in range(retImg.shape[0]):
+            for x in range(retImg.shape[1]):
+                alpha=self.img[y,x,3]/255
+                point=self.img[y,x]
+                retImg[y,x,0]=(1-alpha)*backColor[2]+alpha*point[0]
+                retImg[y,x,1]=(1-alpha)*backColor[1]+alpha*point[1]
+                retImg[y,x,2]=(1-alpha)*backColor[0]+alpha*point[2]
+
+
+        return retImg
+
     #まずは大津法！
     def calcPixnumMeanVari(self,histo,value):
         num  = np.sum(histo)
@@ -38,6 +62,7 @@ class imgProCls:
         mean = np.sum(histo * value) / num
         vari = np.sum(histo * ( (value - mean)**2) ) / num
         return num, mean, vari
+
 
 
     #大津法　標準出力にエラーが出ると困るので、修正
@@ -286,10 +311,9 @@ class imgProCls:
     def GrowthPointAlphaPainter(self,seed_y,seed_x,allowRange,alphaVal:np.uint8):
         paintList=self.GrowthPoint(seed_y,seed_x,allowRange)
         retImg=copy.deepcopy(self.img)
-        if retImg.ndim==3:
-            retImg=
-            retImg=retImg.convert('RGBA')
-            print(str("retImg.convert('RGBA').ndim=")+retImg.ndim)
+        if retImg.shape[2]==3:
+            retImg=cv2.cvtColor(retImg,cv2.COLOR_RGB2RGBA)
+            #print(str("cv2.cvtColor(retImg,cv2.COLOR_RGB2BGRA).ndim=")+str(retImg.ndim))
         for y,x in paintList:
             retImg[y,x,3]=alphaVal
             pass
@@ -329,6 +353,8 @@ class imgProCls:
         #img=cv2.Canny(self.img,threshold2=170,threshold1=90,L2gradient=True)
         img=cv2.Canny(self.img,threshold1,threshold2,L2gradient=True)
         return img
+
+    #--------------------------------------------------------------------------------------フィルタ-----------------------------------------------------------
     #線形フィルタの演算装置 グレースケール,RGBどちらでも可
     def LinearFilter(self,filter:np.ndarray):
         #フィルタの例
@@ -525,7 +551,7 @@ class imgProCls:
                 tempPro.img=tempPro.SwapGB()
         print(doneList)
         return tempPro.img
-    
+    #--------------------------------------------------------------------------------------/フィルタ-----------------------------------------------------------
 #---------------------------------------
     #かつての遺物 スライスによってより高速に改良されたため没
     # def LinearFilterOld(self,filter:np.ndarray):
