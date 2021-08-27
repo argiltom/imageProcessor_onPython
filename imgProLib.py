@@ -282,6 +282,18 @@ class imgProCls:
             retImg[y,x,2]=color[0]
             pass
         return retImg
+    #地点を指定、±画素閾値範囲を指定して、α値を指定する そのα値で塗りつぶした画像を取得する これは透過画像として出力されるため、この画像を再代入は出来ない
+    def GrowthPointAlphaPainter(self,seed_y,seed_x,allowRange,alphaVal:np.uint8):
+        paintList=self.GrowthPoint(seed_y,seed_x,allowRange)
+        retImg=copy.deepcopy(self.img)
+        if retImg.ndim==3:
+            retImg=
+            retImg=retImg.convert('RGBA')
+            print(str("retImg.convert('RGBA').ndim=")+retImg.ndim)
+        for y,x in paintList:
+            retImg[y,x,3]=alphaVal
+            pass
+        return retImg
     
     def ErrorDiffusionHalfTone(self):
         img = cv2.cvtColor(self.img, cv2.COLOR_RGB2GRAY)
@@ -448,19 +460,22 @@ class imgProCls:
         #画像演算
         for y,x in cannylist:
             #print(y,x)
-
+            y_left=math.floor(gfh/2)
+            x_left=math.floor(gfw/2)
+            y_right=tempImg.shape[0]-math.ceil(gfh/2)
+            x_right=tempImg.shape[1]-math.ceil(gfw/2)
             temp=0
             #配列踏み越え防止
-            if y<(0+math.floor(gfh/2)) or y>(tempImg.shape[0]-math.ceil(gfh/2)):#floorだとたまに踏み越えが起こる
+            if y<(y_left) or y>(y_right):#floorだとたまに踏み越えが起こる
                 #guprint(y,x)
                 pass
-            elif x<(0+math.floor(gfw/2)) or x>(tempImg.shape[1]-math.ceil(gfw/2)):
+            elif x<(x_left) or x>(x_right):
                 #print(y,x)
                 pass
             else:
                 for fy in range(gfh):
                     for fx in range(gfw):
-                        temp+=tempImg[y-math.floor(gfh/2)+fy,x-math.floor(gfw/2)+fx]*gaussF[fy,fx]
+                        temp+=tempImg[y-y_left+fy,x-x_left+fx]*gaussF[fy,fx]
                 retImg[y,x]=temp
         return retImg
 
@@ -571,3 +586,6 @@ class imgProCls:
 #cv2.waitKey(0)
 #勾配情報出力
 #img=cv2.Canny(img,threshold2=170,threshold1=90,L2gradient=True)
+
+
+#https://qiita.com/derodero24/items/f22c22b22451609908ee RGBA RGB GRAYの変換参考 https://qiita.com/Kazuhito/items/ff4d24cd012e40653d0c

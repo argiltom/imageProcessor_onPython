@@ -67,9 +67,15 @@ pro=imgProLib.imgProCls(img)
 
 # cv2.imshow("img",retImg1)
 # cv2.waitKey(0)
-#filter=np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])#ndarrayインスタンスを作成
+#filter=np.array([[0,-1,0],[-1,4,-1],[0,-1,0]])#ndarrayインスタンスを作成
+filter=np.array([[0,1,0],[1,-4,1],[0,1,0]])#ラプラシアンフィルタ
 t1_1=time.time()
-retImg=pro.YABAIFilter(10)
+#retImg=pro.LinearFilter(filter)
+#retImg=pro.YABAIFilter(10)
+#retImg=pro.SUGOIFilter(5)
+#retImg=pro.Canny(100,200)
+#retImg=pro.SwapGB()
+retImg=pro.GrowthPointAlphaPainter(0,0,40,0)
 t1_2=time.time()
 print(str(t1_2-t1_1)+"秒")
 
