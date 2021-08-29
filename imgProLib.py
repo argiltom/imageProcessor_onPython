@@ -97,7 +97,6 @@ class imgProCls:
 
         num, mean, vari = self.calcPixnumMeanVari(histo, value) #よくわからんが、動くからヨシ！
 
-
         #TODO 3 Otsu法により閾値threshを計算
         #ヒント: スライスをうまく使うとコードが綺麗にかけます
         #calcPixnumMeanVari(histo[a:b], value[a:b])　
@@ -136,9 +135,7 @@ class imgProCls:
             for x in range(-r,r+1):
                 if(r**2>=y**2+x**2):
                     kernel[r+y,r+x]=1
-                
         #print(kernel) #r=2で5×5の丁度良いカーネル
-        
         #カーネルに合わせて膨張処理
         H,W=self.img.shape[0],self.img.shape[1]
         retImg = np.zeros_like(self.img)
@@ -160,8 +157,11 @@ class imgProCls:
                         retImg[y,x]=np.min(targetList)
                     #print(temp)
                     #print(str(tempMax))
-                    
         return retImg
+
+
+
+
 
     #RGB対応のモーフォロジー R+G+Bでの最大値最小値で、RGBで一組としてモーフォロジーを行う
     def MorphologyRGB(self,r,option):#thresh前景領域とみなす閾値　#thresh<=の画素に対してモーフォロジーを適用
@@ -250,9 +250,44 @@ class imgProCls:
                         #print("min="+str(np.max(targetList)))
                         retImg[y,x,k]=np.min(targetList)
                     #print(temp)
-                    #print(str(tempMax))
-                    
         return retImg
+    #Alpha値についてのモーフォロジー演算．
+    def MorphologyAlpha(self,r,option):
+        self.__SelfImgConvert2RGBA()
+        #カーネルの作成
+        kernel=np.zeros((2*r+1,2*r+1),dtype=int)
+        #円形カーネルの設定
+        for y in range(-r,r+1):
+            for x in range(-r,r+1):
+                if(r**2>=y**2+x**2):
+                    kernel[r+y,r+x]=1
+        #print(kernel) #r=2で5×5の丁度良いカーネル
+        #カーネルに合わせて膨張処理
+        H,W=self.img.shape[0],self.img.shape[1]
+        retImg = np.zeros_like(self.img)
+        
+        for y in range(r,H-r):
+            for x in range(r,W-r):
+                    #投影
+                    retImg[y,x,:3]=self.img[y,x,:3]
+                #前景領域
+                    #まず、カーネルと画像のスライスのアダマール積を取り、生き残った画素の最大値を取る
+                    outKernel=self.img[(y-r):(y+r+1),(x-r):(x+r+1),3]*kernel
+                    targetList=[]
+                    for i in range(outKernel.shape[0]):
+                        for j in range(outKernel.shape[1]):
+                            if(kernel[i,j]==1):
+                                targetList.append(outKernel[i,j])
+                    if(option==0):#膨張
+                        #print("max="+str(np.max(targetList)))
+                        retImg[y,x,3]=np.max(targetList)
+                    if(option==1):#縮小
+                        #print("min="+str(np.max(targetList)))
+                        retImg[y,x,3]=np.min(targetList)
+                    #print(temp)
+                    #print(str(tempMax))
+        return retImg
+
 
 
     #シード画素を領域成長させて、該当領域の座標リストを返す
@@ -268,10 +303,13 @@ class imgProCls:
         bin_img = np.zeros((self.img.shape[0],self.img.shape[1]))
         bin_img[0:bin_img.shape[0],0:bin_img.shape[1]] = 1 #全部1で初期化 1は未踏破の証
         bin_img[seed_y,seed_x]=255 #seed画素が前景であることは確定
+        
         self.__EnQuere(seed_y,seed_x)
         
         #返す座標リスト
         retList=[]
+        retList.append((seed_y,seed_x))#初期地点もリストに追加
+
         while len(self.queue)!=0:
             y,x=self.__DeQuere()
             #print(str(y)+","+str(x)+" thresh="+str(allowRange))

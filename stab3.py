@@ -5,7 +5,7 @@ import cv2
 import time
 from imgProLib import imgProCls
 fname_in  = sys.argv[1]
-img = cv2.imread(fname_in)
+img = cv2.imread(fname_in,-1)
 pro=imgProCls(img)
 # retImg=pro.MorphologyRGB(2,0)
 # cv2.imshow("img",retImg)
@@ -74,9 +74,13 @@ t1_1=time.time()
 #retImg=pro.SUGOIFilter(5)
 #retImg=pro.Canny(100,200)
 #retImg=pro.SwapGB()
-pro.img=pro.GrowthPointAlphaPainter(10,10,140,0)
+pro.img=pro.GaussianFilter(3,1.3)
+cv2.imshow("img",pro.AlphaImg2RGBImg((255,255,255)))
+cv2.waitKey(0)
+pro.img=pro.MorphologyAlpha(5,1)
+#pro.img=pro.GrowthPointAlphaPainter(10,10,140,0)
 #pro.img=retImg
-pro.img=pro.MorphologyRGB(3,0)
+#pro.img=pro.MorphologyRGB(3,0)
 #pro.img=pro.GaussianFilter(10,5)
 t1_2=time.time()
 print(str(t1_2-t1_1)+"秒")
