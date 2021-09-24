@@ -40,6 +40,7 @@ class imgProCls:
         #カラー画像を透過考慮画像RGBA画像に変更
         if self.img.shape[2]==3: #alphaがないなら
             self.img=cv2.cvtColor(self.img,cv2.COLOR_RGB2RGBA)
+            #self.img[0:self.img.shape[0],0:self.img.shape[1],3]=255 #透明にならないように
 
     
     #画像を演算用画像に書き換える
@@ -197,9 +198,9 @@ class imgProCls:
             for x in range(r,W-r):
                 
                 #まず、カーネルと画像のスライスのアダマール積を取り、生き残った画素の最大値を取る
-                outKernel=self.img[(y-r):(y+r+1),(x-r):(x+r+1),0]*kernel
-                outKernel=outKernel+self.img[(y-r):(y+r+1),(x-r):(x+r+1),1]*kernel
-                outKernel=outKernel+self.img[(y-r):(y+r+1),(x-r):(x+r+1),2]*kernel
+                outKernel=self.img[(y-r):(y+r+1),(x-r):(x+r+1),0]
+                outKernel=outKernel+self.img[(y-r):(y+r+1),(x-r):(x+r+1),1]
+                outKernel=outKernel+self.img[(y-r):(y+r+1),(x-r):(x+r+1),2]
                 targetList=[]
                 for i in range(outKernel.shape[0]):
                     for j in range(outKernel.shape[1]):
@@ -272,7 +273,7 @@ class imgProCls:
                     retImg[y,x,:3]=self.img[y,x,:3]
                 #前景領域
                     #まず、カーネルと画像のスライスのアダマール積を取り、生き残った画素の最大値を取る
-                    outKernel=self.img[(y-r):(y+r+1),(x-r):(x+r+1),3]*kernel
+                    outKernel=self.img[(y-r):(y+r+1),(x-r):(x+r+1),3]
                     targetList=[]
                     for i in range(outKernel.shape[0]):
                         for j in range(outKernel.shape[1]):
@@ -360,7 +361,7 @@ class imgProCls:
             retImg[y,x,2]=color[0]
             pass
         return retImg
-    #地点を指定、±画素閾値範囲を指定して、α値を指定する そのα値で塗りつぶした画像を取得する これは透過画像として出力されるため、この画像を再代入は出来ない
+    #地点を指定、±画素閾値範囲を指定して、α値を指定する そのα値で塗りつぶした画像を取得する これは透過画像として出力されるため
     def GrowthPointAlphaPainter(self,seed_y,seed_x,allowRange,alphaVal:np.uint8):
         paintList=self.GrowthPoint(seed_y,seed_x,allowRange)
         retImg=copy.deepcopy(self.img)
@@ -444,6 +445,7 @@ class imgProCls:
             return 1/(2*math.pi*(ρ**2))*math.exp(-(x**2+y**2)/(2*(ρ**2)))
         #ガウシアンフィルタの生成
         gaussF=np.zeros((length,length))
+        
         for y in range(length):
             for x in range(length):
                 gaussF[y,x]=CalcGaussian(y-math.floor(length/2),x-math.floor(length/2),ρ)
@@ -490,6 +492,8 @@ class imgProCls:
                             temp[k]=-temp[k]
                         else:
                             temp[k]=0
+                    if temp[k]>255:
+                            temp[k]=255
                 retImg[y,x]=temp
         return retImg
     #CannyFilterで検出した箇所にガウシアンフィルタを掛ける
@@ -555,6 +559,45 @@ class imgProCls:
 
 
     
+    #メディアンフィルタ
+    def MedianFilter(self,r:int):
+        self.__SelfImgConvert2RGBA()#画像をRGBAに変換する
+        #カーネルの作成
+        kernel=np.zeros((2*r+1,2*r+1,3),dtype=int)
+        #円形カーネルの設定
+        for y in range(-r,r+1):
+            for x in range(-r,r+1):
+                if(r**2>=y**2+x**2):
+                    kernel[r+y,r+x]=1
+        kH=kernel.shape[0]
+        kW=kernel.shape[1]
+        #カーネルに合わせて膨張処理
+        H,W=self.img.shape[0],self.img.shape[1]
+        #画像の透明度情報以外は0に
+        retImg = np.zeros_like(self.img)
+        retImg[:,:,3]=self.img[:,:,3]
+        progress = 0
+        maxprogress = (H-2*r)*(W-2*r)
+        for y in range(r,H-r):
+            for x in range(r,W-r):
+                outKernel=self.img[(y-r):(y+r+1),(x-r):(x+r+1),0:3]
+                for k in range(3):
+                #前景領域
+                    #まず、カーネルと画像のスライスのアダマール積を取り、生き残った画素の中央値を取る
+                    targetList=[]
+                    for i in range(kH):
+                        for j in range(kW):
+                            if(kernel[i,j,k]==1):
+                                targetList.append(outKernel[i,j,k])
+                    retImg[y,x,k]=np.median(targetList)
+                    #print(str(y)+","+str(x)+","+str(k))
+                progress+=1
+                print(str(progress)+"/"+str(maxprogress))
+        return retImg
+
+
+
+
     #すごいフィルタ
     def SUGOIFilter(self,flen:int):
         filter=np.zeros((flen,flen))
