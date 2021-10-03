@@ -19,7 +19,7 @@ cv2.waitKey(0)
 
 
 t1_1=time.time()
-retImg=pro1.MorphologyRGB(5,1)
+retImg=pro1.MorphologyRGB(5,0)
 t1_2=time.time()
 print(str(t1_2-t1_1)+"秒")
 cv2.imshow("img",retImg)
