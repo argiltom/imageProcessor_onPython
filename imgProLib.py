@@ -642,6 +642,17 @@ class imgProCls:
                 tempPro.img=tempPro.SwapGB()
         print(doneList)
         return tempPro.img
+    
+    def PickUpPainter(self,color:list,allowRange):
+        retImg=copy.deepcopy(self.img)
+        for y in range(self.img.shape[0]):
+            for x in range(self.img.shape[1]):
+                #if(self.img[y,x,0])
+                    #retImg[y,x,index1]=self.img[y,x,index2]
+                    #retImg[y,x,index2]=self.img[y,x,index1]
+                pass
+        return retImg
+
     #--------------------------------------------------------------------------------------/フィルタ-----------------------------------------------------------
 #---------------------------------------
     #かつての遺物 スライスによってより高速に改良されたため没

@@ -5,7 +5,8 @@ import cv2
 import time
 from imgProLib import imgProCls
 fname_in  = sys.argv[1]
-img = cv2.imread(fname_in,-1)
+#img = cv2.imread(fname_in,-1)
+img = cv2.imread(fname_in)
 pro=imgProCls(img)
 # retImg=pro.MorphologyRGB(2,0)
 # cv2.imshow("img",retImg)
@@ -30,7 +31,7 @@ pro=imgProCls(img)
 #cv2.waitKey(0)
 
 #filter=np.array([[1,0,-1],[2,0,-2],[1,0,-1]])#ndarrayインスタンスを作成
-#filter=np.array([[0,-1,0],[-1,4,-1],[0,-1,0]])#ndarrayインスタンスを作成
+filter=np.array([[1,1,1],[1,-8,1],[1,1,1]])#ndarrayインスタンスを作成
 #print(filter)
 #retImg=pro.LinearFilter(filter)
 #cv2.imshow("img",retImg)
@@ -66,27 +67,42 @@ pro=imgProCls(img)
 
 # cv2.imshow("img",retImg1)
 # cv2.waitKey(0)
-filter=np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])#ndarrayインスタンスを作成
+#filter=np.array([[0.11,0.11,0.11],[0.11,0.11,0.11],[0.11,0.11,0.11]])#ndarrayインスタンスを作成
+#filter=np.array([[0,-3,0],[-3,13,-3],[0,-3,0]])#ndarrayインスタンスを作成
+#filter=np.array([[0,0,-1,0,0],[0,-1,-1,-1,0],[-1,-1,13,-1,-1],[0,-1,-1,-1,0],[0,0,-1,0,0]])#ndarrayインスタンスを作成
+"""
+filter=np.array([[0,0,0,-1,0,0,0],
+                 [0,0,-1,-1,-1,0,0],
+                 [0,-1,-1,-1,-1,-1,0],
+                 [-1,-1,-1,25,-1,-1,-1],
+                 [0,-1,-1,-1,-1,-1,0],
+                 [0,0,-1,-1,-1,0,0],
+                 [0,0,0,-1,0,0,0]])#ndarrayインスタンスを作成
+"""
+
+print(filter)
 #filter=np.array([[0,1,0],[1,-4,1],[0,1,0]])#ラプラシアンフィルタ
-t1_1=time.time()
-#retImg=pro.LinearFilter(filter)
+#t1_1=time.time()
+#pro.img =pro.LinearFilter(filter)
+retImg =pro.LinearFilter(filter)
+#retImg=pro.GaussianFilter(5,1.6)
 #retImg=pro.YABAIFilter(10)
 #retImg=pro.SUGOIFilter(5)
 #retImg=pro.Canny(100,200)
 #retImg=pro.SwapGB()
-pro.img=pro.GaussianFilter(3,1.3)
-cv2.imshow("img",pro.AlphaImg2RGBImg((255,255,255)))
-cv2.waitKey(0)
-pro.img=pro.MorphologyAlpha(5,1)
+#pro.img=pro.GaussianFilter(5,1)
+#cv2.imshow("img",pro.AlphaImg2RGBImg((255,255,255)))
+#cv2.waitKey(0)
+#pro.img=pro.MorphologyAlpha(5,1)
 #pro.img=pro.GrowthPointAlphaPainter(10,10,140,0)
 #pro.img=retImg
 #pro.img=pro.MorphologyRGB(3,0)
 #pro.img=pro.GaussianFilter(10,5)
-t1_2=time.time()
-print(str(t1_2-t1_1)+"秒")
-
-cv2.imshow("img",pro.AlphaImg2RGBImg((255,255,255)))
-cv2.waitKey(0)
+#t1_2=time.time()
+#print(str(t1_2-t1_1)+"秒")
+#pro.img=retImg
+#cv2.imshow("img",pro.AlphaImg2RGBImg((255,255,255)))
+#cv2.waitKey(0)
 
 
 #print("OutPutFileName=",end="")
@@ -104,5 +120,5 @@ cv2.waitKey(0)
 
 print("OutPutFileName=",end="")
 outputStr=input()
-cv2.imwrite(outputStr,pro.img)
+cv2.imwrite(outputStr,retImg)
 
