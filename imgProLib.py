@@ -595,8 +595,24 @@ class imgProCls:
                 print(str(progress)+"/"+str(maxprogress))
         return retImg
 
+#特定の色を画像から削除する r,g,b,a =0にする
+    def DeleteSelectColor(self,selctColor:list,rangeOfDeletePixelSum:int):
+        retImg=np.zeros_like(self.img)
+        self.__SelfImgConvert2RGBA()
+
+        for y in range(retImg.shape[0]):
+            for x in range(retImg.shape[1]):
+                diffPixSum=0
+                for k in range(3):
+                    diffPixSum+=np.abs(int(self.img[y,x,k])-int(selctColor[k]))
+                if diffPixSum>rangeOfDeletePixelSum:
+                    retImg[y,x,0]=self.img[y,x,0]
+                    retImg[y,x,1]=self.img[y,x,1]
+                    retImg[y,x,2]=self.img[y,x,2]
+                    retImg[y,x,3]=self.img[y,x,3]
 
 
+        return retImg
 
     #すごいフィルタ
     def SUGOIFilter(self,flen:int):

@@ -8,7 +8,10 @@ from imgProLib import imgProCls
 def MouseEvent(event,x,y,flags,param):
     if event == cv2.EVENT_LBUTTONUP:
         print(y,x)
-        pro.img=pro.GrowthPointAlphaPainter(y,x,rangeValue,0)
+        r=pro.img[y,x,0]
+        g=pro.img[y,x,1]
+        b=pro.img[y,x,2]
+        pro.img=pro.DeleteSelectColor((r,g,b),rangeValue)
         #pro.img[y,x,:]=255
 
 fname_in  = sys.argv[1]
